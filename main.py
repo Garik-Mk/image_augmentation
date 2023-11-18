@@ -1,7 +1,9 @@
 import os
+import itertools
 import random
 from PIL import Image, ImageFilter, ImageEnhance
 from tqdm import tqdm
+
 
 def fix_orientation(img):
     if hasattr(img, '_getexif'):
@@ -33,7 +35,7 @@ def horizontal_flip(img):
 
 def rotate_image(img, angle):
     rotated_img = img.rotate(angle)
-    return rotate_image
+    return rotated_img
 
 def add_noise(img, noise_factor=0.05):
     noisy_img = img.filter(ImageFilter.GaussianBlur(radius=noise_factor))
@@ -52,17 +54,45 @@ def adjust_color(img, color_factor=1.5):
     return img
 
 def augment(input_folder, output_folder):
+    augmentation_functions = [
+        horizontal_flip,
+        lambda img: rotate_image(img, random.randint(0, 36) * 10),
+        lambda img: rotate_image(img, random.randint(0, 36) * 10),
+        lambda img: rotate_image(img, random.randint(0, 36) * 10),
+        lambda img: add_noise(img, random.uniform(0, 1)),
+        lambda img: add_noise(img, random.uniform(0, 1)),
+        lambda img: add_noise(img, random.uniform(0, 1)),
+        lambda img: adjust_brightness_contrast(img, random.uniform(0.5, 1.5), random.uniform(0.5, 1.5)),
+        lambda img: adjust_brightness_contrast(img, random.uniform(0.5, 1.5), random.uniform(0.5, 1.5)),
+        lambda img: adjust_brightness_contrast(img, random.uniform(0.5, 1.5), random.uniform(0.5, 1.5)),
+        lambda img: adjust_color(img, random.uniform(0.5, 1.5)),
+        lambda img: adjust_color(img, random.uniform(0.5, 1.5)),
+        lambda img: adjust_color(img, random.uniform(0.5, 1.5))
+    ]
+    all_combinations = []
+    for r in range(1, len(augmentation_functions) + 1):
+        all_combinations.extend(itertools.combinations(augmentation_functions, r))
+
     for filename in tqdm(os.listdir(input_folder)):
         image_path = os.path.join(input_folder, filename)
-        output_path = os.path.join(output_folder, filename)
         img = open_image(image_path)
+        augment_counter = 0
         # img = resize(img)
-        
-        
+        for combination in all_combinations:
+            augmented_img = img.copy()
+            for func in combination:
+                augmented_img = func(augmented_img)
+            output_path = os.path.join(
+                output_folder, 
+                f"image_{augment_counter}.jpg"
+            )
+            augmented_img.save(output_path)
+            augment_counter += 1
 
 
 if __name__ == '__main__':
     input_folder = "dataset/spaceship_resized"
     output_folder = "augmented_dataset/spaceship"
-    
+    augment(input_folder, output_folder)
+
 
